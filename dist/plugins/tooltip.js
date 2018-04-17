@@ -241,6 +241,7 @@ var Tooltip = /** @class */ (function () {
     function Tooltip(settings) {
         this.settings = utils.defaults(settings || {}, {
             align: 'bottom-right',
+            clickable: true,
             clsClickable: TOOLTIP_CLS + "__clickable",
             clsStuck: 'stuck',
             clsTarget: TOOLTIP_CLS + "-target",
@@ -289,25 +290,27 @@ var Tooltip = /** @class */ (function () {
             });
         };
         window.addEventListener('scroll', this._scrollHandler, true);
-        this._outerClickHandler = function (e) {
-            var clickableItems = Array.from(document
-                .querySelectorAll("." + _this.settings.clsClickable))
-                .concat(_this.getDomNode());
-            var rects = clickableItems.map(function (el) { return el.getBoundingClientRect(); });
-            var top = Math.min.apply(Math, rects.map(function (r) { return r.top; }));
-            var left = Math.min.apply(Math, rects.map(function (r) { return r.left; }));
-            var right = Math.max.apply(Math, rects.map(function (r) { return r.right; }));
-            var bottom = Math.max.apply(Math, rects.map(function (r) { return r.bottom; }));
-            if ((e.clientX < left) ||
-                (e.clientX > right) ||
-                (e.clientY < top) ||
-                (e.clientY > bottom)) {
-                _this.setState({
-                    highlight: null,
-                    isStuck: false
-                });
-            }
-        };
+        if (this.settings.clickable) {
+            this._outerClickHandler = function (e) {
+                var clickableItems = Array.from(document
+                    .querySelectorAll("." + _this.settings.clsClickable))
+                    .concat(_this.getDomNode());
+                var rects = clickableItems.map(function (el) { return el.getBoundingClientRect(); });
+                var top = Math.min.apply(Math, rects.map(function (r) { return r.top; }));
+                var left = Math.min.apply(Math, rects.map(function (r) { return r.left; }));
+                var right = Math.max.apply(Math, rects.map(function (r) { return r.right; }));
+                var bottom = Math.max.apply(Math, rects.map(function (r) { return r.bottom; }));
+                if ((e.clientX < left) ||
+                    (e.clientX > right) ||
+                    (e.clientY < top) ||
+                    (e.clientY > bottom)) {
+                    _this.setState({
+                        highlight: null,
+                        isStuck: false
+                    });
+                }
+            };
+        }
     };
     Tooltip.prototype.getDomNode = function () {
         return this._tooltip.getElement();
@@ -348,7 +351,7 @@ var Tooltip = /** @class */ (function () {
         }
         // Stick/unstick tooltip
         var tooltipNode = this.getDomNode();
-        if (state.isStuck !== prev.isStuck) {
+        if (this.settings.clickable && state.isStuck !== prev.isStuck) {
             if (state.isStuck) {
                 window.addEventListener('click', this._outerClickHandler, true);
                 tooltipNode.classList.add(settings.clsStuck);
@@ -435,23 +438,25 @@ var Tooltip = /** @class */ (function () {
                     } : null)
                 });
             });
-            node.on('data-click', function (sender, e) {
-                var bodyRect = document.body.getBoundingClientRect();
-                _this.setState(e.data ? {
-                    highlight: {
-                        data: e.data,
-                        cursor: {
-                            x: (e.event.clientX - bodyRect.left),
-                            y: (e.event.clientY - bodyRect.top)
+            if (_this.settings.clickable) {
+                node.on('data-click', function (sender, e) {
+                    var bodyRect = document.body.getBoundingClientRect();
+                    _this.setState(e.data ? {
+                        highlight: {
+                            data: e.data,
+                            cursor: {
+                                x: (e.event.clientX - bodyRect.left),
+                                y: (e.event.clientY - bodyRect.top)
+                            },
+                            unit: e.unit
                         },
-                        unit: e.unit
-                    },
-                    isStuck: true
-                } : {
-                    highlight: null,
-                    isStuck: null
+                        isStuck: true
+                    } : {
+                        highlight: null,
+                        isStuck: null
+                    });
                 });
-            });
+            }
         });
     };
     Tooltip.prototype.getFieldFormat = function (k) {
